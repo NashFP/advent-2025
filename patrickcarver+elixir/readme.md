@@ -2,7 +2,7 @@
 
 * [Day 1](https://github.com/patrickcarver/aoc-2025-day01)
 * [Day 2](https://github.com/patrickcarver/aoc-2025-day02)
-* Day 3
+* [Day 3](https://github.com/patrickcarver/aoc-2025-day03)
 * Day 4
 * Day 5
 * Day 6
