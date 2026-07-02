@@ -1,0 +1,66 @@
+(use-modules (mwlib util) (srfi srfi-1)
+	     ((rnrs) :version (6)))
+
+(define (parse-line l)
+  (list->vector (append (map string->number (string-split l #\,)) '(0))))
+
+(define (set-groups v)
+  (for-each (lambda (i) (vector-set! (vector-ref v i) 3 i))
+	    (range 0 (vector-length v)))
+  v)
+
+(define (compute-distances coords)
+  (define (compute-dist i j)
+    (apply + (map (lambda (p)
+		    (let ((dist (- (vector-ref (vector-ref coords j) p)
+				   (vector-ref (vector-ref coords i) p))))
+		      (* dist dist)))
+		  (range 0 3))))
+  (define (make-coord-dist i)
+    (map (lambda (j)
+	   (list i j (compute-dist i j)))
+	 (range (1+ i) (vector-length coords))))
+  (define (compare-coord-pairs p1 p2)
+    (< (caddr p1) (caddr p2)))
+  (let* ((coord-dists (append-map! make-coord-dist
+				   (range 0 (1- (vector-length coords))))))
+    (sort coord-dists compare-coord-pairs)))
+
+(define (merge-groups coords groups distances)
+  (define (do-merge i j i-group j-group)
+    (for-each (lambda (n) (vector-set! (vector-ref coords n) 3 i-group))
+	      (vector-ref groups j-group))
+    (vector-set! groups i-group (append (vector-ref groups i-group)
+					(vector-ref groups j-group)))
+    (vector-set! groups j-group '()))
+  
+  (define (merge-pair dist state)
+    (let* ((i (car dist))
+	   (j (cadr dist))
+	   (num-connected (car state))
+	   (i-group (vector-ref (vector-ref coords i) 3))
+	   (j-group (vector-ref (vector-ref coords j) 3))
+	   (part-a
+	    (if (= num-connected 1000)
+		(apply * (take (sort (map length (vector->list groups))
+				      >) 3))
+		(cadr state))))
+      (if (not (= i-group j-group))
+	  (begin
+	    (do-merge i j i-group j-group)
+	    (list (1+ num-connected)
+		  part-a
+		  (* (vector-ref (vector-ref coords i) 0)
+		     (vector-ref (vector-ref coords j) 0))))
+	  (list (1+ num-connected) part-a (caddr state)))))
+  (fold merge-pair (list 0 0 0) distances))
+
+(define (day8)
+  (let* ((coords (set-groups
+		  (list->vector
+		   (map parse-line (read-file "data/day8.txt")))))
+	 (groups (list->vector (map list (range 0 (vector-length coords)))))
+	 (distances (compute-distances coords))
+	 (results (merge-groups coords groups distances)))
+    (format #t "day8a = ~a~%" (cadr results))
+    (format #t "day8b = ~a~%" (caddr results))))

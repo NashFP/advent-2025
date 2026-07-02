@@ -1,0 +1,35 @@
+(use-modules (mwlib util) (srfi srfi-1))
+
+(define (create-start-vector row)
+  (list->vector
+   (map (lambda (ch) (if (char=? ch #\S) 1 0))
+	(string->list row))))
+
+(define (process-line curr-line data)
+  (let* ((split-count (car data))
+	(curr-vec (cdr data))
+	(next-vector (make-vector (vector-length curr-vec) 0)))
+    (map (lambda (n)
+	   (if (char=? (string-ref curr-line n) #\^)
+	       (begin
+		 (when (> (vector-ref curr-vec n) 0)
+		   (set! split-count (1+ split-count)))
+		 (vector-set! next-vector (1- n)
+			      (+ (vector-ref next-vector (1- n))
+				 (vector-ref curr-vec n)))
+		 (vector-set! next-vector n 0)
+		 (vector-set! next-vector (1+ n)
+			      (+ (vector-ref next-vector (1+ n))
+				 (vector-ref curr-vec n))))
+	       (vector-set! next-vector n (+ (vector-ref curr-vec n)
+					     (vector-ref next-vector n)))))
+	 (range 0 (vector-length curr-vec)))
+    (cons split-count next-vector)))
+
+(define (day7)
+  (let* ((lines (read-file "data/day7.txt"))
+	 (start-vec (create-start-vector (car lines)))
+	 (result (fold process-line (cons 0 start-vec) (cdr lines))))
+    (format #t "day7a = ~a~%" (car result))
+    (format #t "day7b = ~a~%"
+	    (apply + (vector->list (cdr result))))))
